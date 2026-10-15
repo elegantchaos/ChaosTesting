@@ -13,17 +13,19 @@ import Testing
 @Test func testBundleURL() async throws {
   let url = Test.current?.bundleURL
   print(url!)
-  #expect(url?.lastPathComponent == "ChaosTestingPackageTests")
+  // SwiftPM names the bundle after the package or, in newer toolchains, the test target.
+  #expect(["ChaosTestingPackageTests", "ChaosTestingTests"].contains(url?.lastPathComponent))
 }
 
 /// Test getting the url to the build folder
 @Test func testBuildFolderURL() async throws {
   let url = Test.current?.buildFolderURL
   print(url!)
+  // Newer toolchains capitalise the configuration folder.
   #if DEBUG
-    #expect(url?.lastPathComponent == "debug")
+    #expect(url?.lastPathComponent.lowercased() == "debug")
   #else
-    #expect(url?.lastPathComponent == "release")
+    #expect(url?.lastPathComponent.lowercased() == "release")
   #endif
 }
 
@@ -35,7 +37,8 @@ import Testing
     #expect(FileManager.default.fileExists(atPath: url.path))
 
     // check that it's in the expected location
-    #expect(url.path.hasPrefix("/var/folders/"))  // macOS temp folder -- not sure whether this is guaranteed to pass on all platforms
+    // macOS temp folder -- not sure whether this is guaranteed to pass on all platforms
+    #expect(url.path.hasPrefix("/var/folders/"))
     savedURL = url
   }
 

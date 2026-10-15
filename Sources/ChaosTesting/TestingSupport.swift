@@ -1,15 +1,11 @@
 import Foundation
 import Testing
 
-/// Cache of the test bundle URL.
-private let cachedBundleURL: URL = initCachedURL()
-
-/// Work out the bundle URL.
-/// - Returns: The URL of the test bundle.
+/// The URL of the test bundle, without its `.xctest` extension, or nil if it cannot be found.
 ///
 /// We look for the test bundle by looking at the command line arguments.
 /// We assume that the test bundle is the first argument that contains ".xctest".
-private func initCachedURL() -> URL {
+let testBundleURL: URL? = {
   for arg in ProcessInfo.processInfo.arguments {
     if arg.contains(".xctest") {
       if let path = arg.split(separator: ".xctest").first {
@@ -18,12 +14,15 @@ private func initCachedURL() -> URL {
     }
   }
 
-  fatalError("Could not find the test bundle path")
-}
+  return nil
+}()
 
 extension Test {
   /// URL of the test bundle.
-  public var bundleURL: URL { cachedBundleURL }
+  public var bundleURL: URL {
+    guard let testBundleURL else { fatalError("Could not find the test bundle path") }
+    return testBundleURL
+  }
 
   /// URL of the build folder that contains the test bundle.
   /// It may also contain other build products that we want to access,
@@ -56,11 +55,9 @@ extension Test {
   /// - Parameter body: The code to run in the temporary folder.
   /// - Returns: The result of the code.
   ///
-  /// The temporary folder is deleted after the code runs.
+  /// The temporary folder is made with `TestScratchDirectory`, and deleted after the code runs.
   public func inTempFolder<T>(_ body: (URL) async throws -> T) async throws -> T {
-    let temp = URL(fileURLWithPath: NSTemporaryDirectory())
-    let folder = temp.appendingPathComponent(UUID().uuidString)
-    try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+    let folder = try TestScratchDirectory.makeDirectory()
     defer {
       try? FileManager.default.removeItem(at: folder)
     }
